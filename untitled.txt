@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a1a; color: #e0e0e0; min-height: 100vh; }
+        .hidden { display: none !important; }
+
+        /* Login */
+        .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0a0a1a, #1a1a3e); }
+        .login-box { background: linear-gradient(145deg, #1e1e3f, #161632); padding: 50px; border-radius: 20px; box-shadow: 0 25px 80px rgba(0,0,0,0.5); width: 100%; max-width: 420px; border: 1px solid rgba(102,126,234,0.2); text-align: center; }
+        .login-box h1 { color: #fff; margin-bottom: 10px; font-size: 28px; }
+        .login-box p { color: #888; margin-bottom: 30px; }
+        .login-box input { width: 100%; padding: 15px; border: 2px solid #2a2a5a; border-radius: 12px; font-size: 16px; background: #12122a; color: #fff; margin-bottom: 20px; }
+        .login-box input:focus { outline: none; border-color: #667eea; }
+        .login-box button { width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; }
+        .login-box button:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(102,126,234,0.4); }
+
+        /* Dashboard */
+        .admin-grid { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+        .sidebar { background: linear-gradient(180deg, #0f0f23, #1a1a3e); padding: 30px 20px; border-right: 1px solid rgba(102,126,234,0.1); }
+        .sidebar h2 { color: #fff; margin-bottom: 30px; font-size: 20px; text-align: center; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar button { width: 100%; padding: 14px; margin-bottom: 8px; background: transparent; border: none; color: rgba(255,255,255,0.6); text-align: left; cursor: pointer; border-radius: 10px; transition: all 0.3s; font-size: 14px; font-weight: 600; }
+        .sidebar button:hover, .sidebar button.active { background: rgba(102,126,234,0.2); color: #fff; }
+        .sidebar .logout-btn { margin-top: 30px; background: rgba(231,76,60,0.2) !important; color: #ff7675 !important; }
+
+        .content { padding: 30px; background: #0a0a1a; overflow-y: auto; }
+        .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid rgba(102,126,234,0.1); }
+        .content-header h1 { color: #fff; font-size: 24px; }
+
+        /* Stats */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-box { background: linear-gradient(145deg, #1e1e3f, #161632); padding: 25px; border-radius: 16px; border-left: 4px solid #667eea; }
+        .stat-box h4 { font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 10px; }
+        .stat-box .value { font-size: 28px; font-weight: 800; color: #fff; }
+        .stat-box.green { border-left-color: #27ae60; }
+        .stat-box.orange { border-left-color: #f39c12; }
+        .stat-box.purple { border-left-color: #9b59b6; }
+        .stat-box.red { border-left-color: #e74c3c; }
+
+        /* Tables */
+        .table-section { background: linear-gradient(145deg, #1e1e3f, #161632); padding: 25px; border-radius: 16px; margin-bottom: 25px; }
+        .table-section h3 { color: #fff; margin-bottom: 20px; font-size: 18px; }
+        .table-section h3 .count { background: #667eea; color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; margin-left: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 14px; text-align: left; border-bottom: 1px solid #2a2a5a; }
+        th { background: #12122a; font-weight: 700; color: #a0a0c0; font-size: 12px; text-transform: uppercase; }
+        tr:hover { background: rgba(102,126,234,0.05); }
+        .badge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .badge-active { background: rgba(39,174,96,0.2); color: #2ecc71; }
+        .badge-inactive { background: rgba(99,110,114,0.2); color: #b2bec3; }
+        .badge-pending { background: rgba(243,156,18,0.2); color: #fdcb6e; }
+        .badge-approved { background: rgba(39,174,96,0.2); color: #2ecc71; }
+        .badge-rejected { background: rgba(231,76,60,0.2); color: #ff7675; }
+
+        .btn { padding: 8px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.3s; margin-right: 5px; margin-bottom: 5px; }
+        .btn-allocate { background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; }
+        .btn-reject { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }
+        .btn-edit { background: linear-gradient(135deg, #3498db, #2980b9); color: white; }
+        .btn-toggle { background: linear-gradient(135deg, #f39c12, #e67e22); color: white; }
+        .btn-delete { background: linear-gradient(135deg, #636e72, #b2bec3); color: white; }
+        .btn-save { background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; padding: 12px 24px; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #a0a0c0; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 2px solid #2a2a5a; border-radius: 10px; background: #12122a; color: #fff; font-size: 14px; }
+        .form-group input:focus { outline: none; border-color: #667eea; }
+        .add-btn { padding: 12px 24px; background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 3000; padding: 20px; }
+        .modal-box { background: linear-gradient(145deg, #1e1e3f, #161632); padding: 30px; border-radius: 20px; width: 100%; max-width: 500px; border: 1px solid rgba(102,126,234,0.3); }
+        .modal-box h3 { color: #fff; margin-bottom: 20px; font-size: 22px; }
+        .modal-close { float: right; font-size: 28px; cursor: pointer; color: #888; }
+        .modal-close:hover { color: #fff; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 30px; right: 30px; padding: 16px 24px; border-radius: 12px; color: white; font-weight: 700; z-index: 4000; animation: slideIn 0.3s ease; }
+        .toast.success { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .toast.error { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        @media (max-width: 768px) {
+            .admin-grid { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .stats-row { grid-template-columns: 1fr 1fr; }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="login-page">
+    <div class="login-box">
+        <h1>🔐 Admin Control</h1>
+        <p>Master Dashboard for LaptopInvest UG</p>
+        <form onsubmit="handleLogin(event)">
+            <input type="password" id="adminPass" placeholder="Enter admin password" autofocus>
+            <button type="submit">Access Dashboard</button>
+        </form>
+        <p style="margin-top: 20px; color: #666; font-size: 12px;">Default: admin123</p>
+    </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="hidden">
+    <!-- Mobile Menu Button -->
+    <div style="background: linear-gradient(145deg, #1e1e3f, #161632); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(102,126,234,0.1); position: sticky; top: 0; z-index: 200;">
+        <div style="font-size: 20px; font-weight: 800; color: #667eea;">🔧 Admin</div>
+        <button onclick="toggleMobileMenu()" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 10px 15px; border-radius: 10px; font-size: 20px; cursor: pointer;">☰</button>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="mobileSidebarOverlay" onclick="toggleMobileMenu()" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 250;"></div>
+
+    <div class="admin-grid">
+        <div class="sidebar" id="sidebar">
+            <h2>🔧 Admin Panel</h2>
+            <button onclick="showSection('overview')" class="active" id="nav-overview">📊 Overview</button>
+            <button onclick="showSection('deposits')" id="nav-deposits">💰 Pending Deposits</button>
+            <button onclick="showSection('withdrawals')" id="nav-withdrawals">💸 Pending Withdrawals</button>
+            <button onclick="showSection('users')" id="nav-users">👥 Manage Users</button>
+            <button onclick="showSection('payments')" id="nav-payments">📱 Payment Numbers</button>
+            <button onclick="showSection('settings')" id="nav-settings">⚙️ Settings</button>
+            <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+        </div>
+        <div class="content">
+            <div class="content-header">
+                <h1 id="pageTitle">Dashboard Overview</h1>
+                <div style="color: #888; font-size: 14px;">Status: <span style="color: #2ecc71; font-weight: 700;">ONLINE</span></div>
+            </div>
+
+            <!-- OVERVIEW -->
+            <div id="section-overview">
+                <div class="stats-row">
+                    <div class="stat-box"><h4>Total Users</h4><div class="value" id="statUsers">0</div></div>
+                    <div class="stat-box green"><h4>Total Deposits</h4><div class="value" id="statDeposits">UGX 0</div></div>
+                    <div class="stat-box orange"><h4>Pending Deposits</h4><div class="value" id="statPendingDep">0</div></div>
+                    <div class="stat-box purple"><h4>Pending Withdrawals</h4><div class="value" id="statPendingWith">0</div></div>
+                    <div class="stat-box red"><h4>Blocked Users</h4><div class="value" id="statBlocked">0</div></div>
+                    <div class="stat-box"><h4>Active Investments</h4><div class="value" id="statInvestments">0</div></div>
+                </div>
+            </div>
+
+            <!-- DEPOSITS -->
+            <div id="section-deposits" class="hidden">
+                <div class="table-section">
+                    <h3>💰 Pending Deposit Requests <span class="count" id="depCount">0</span></h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead><tr><th>User</th><th>Phone</th><th>Amount</th><th>Method</th><th>Number Used</th><th>Account Owner</th><th>Transaction ID</th><th>Date</th><th>Actions</th></tr></thead>
+                            <tbody id="depositsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WITHDRAWALS -->
+            <div id="section-withdrawals" class="hidden">
+                <div class="table-section">
+                    <h3>💸 Pending Withdrawal Requests <span class="count" id="withCount">0</span></h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead><tr><th>User</th><th>Phone</th><th>Amount</th><th>Source</th><th>Date</th><th>Actions</th></tr></thead>
+                            <tbody id="withdrawalsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- USERS -->
+            <div id="section-users" class="hidden">
+                <div class="table-section">
+                    <h3>👥 All Users <span class="count" id="userCount">0</span></h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead><tr><th>Name</th><th>Phone</th><th>Deposit Balance</th><th>Earnings</th><th>Total Deposited</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="usersTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAYMENTS -->
+            <div id="section-payments" class="hidden">
+                <!-- ADD NEW -->
+                <div class="table-section">
+                    <h3>➕ Update Payment Number</h3>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Provider</label><select id="newPayType"><option value="mtn">MTN Mobile Money</option><option value="airtel">Airtel Money</option></select></div>
+                        <div class="form-group"><label>Number</label><input type="text" id="newPayNum" placeholder="07XXXXXXXX" maxlength="10"></div>
+                        <div class="form-group" style="grid-column: span 2;"><label>Account Owner Name</label><input type="text" id="newPayName" placeholder="e.g. John Doe"></div>
+                    </div>
+                    <button class="add-btn" onclick="addPaymentNumber()">➕ Add Payment Number</button>
+                </div>
+
+                <!-- ALL PAYMENTS -->
+                <div class="table-section">
+                    <h3>📱 Deposit Receiving Numbers</h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead><tr><th>#</th><th>Type</th><th>Number</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="paymentsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS -->
+            <div id="section-settings" class="hidden">
+                <div class="table-section">
+                    <h3>⚙️ Change Admin Password</h3>
+                    <div class="form-group" style="max-width: 400px;">
+                        <label>New Password</label>
+                        <input type="password" id="newAdminPass" placeholder="Enter new password">
+                    </div>
+                    <button class="add-btn" onclick="changePassword()">Update Password</button>
+
+                    <div style="margin-top: 30px; padding: 20px; background: rgba(231,76,60,0.1); border-radius: 12px; border: 1px solid rgba(231,76,60,0.2);">
+                        <h4 style="color: #ff7675; margin-bottom: 10px;">⚠️ Danger Zone</h4>
+                        <button class="btn btn-reject" onclick="clearAllData()">🗑️ Clear All Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="hidden">
+    <div class="modal-overlay" onclick="closeEditModal(event)">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <span class="modal-close" onclick="closeEditModal()">&times;</span>
+            <h3>✎ Edit Payment Number</h3>
+            <div class="form-grid">
+                <div class="form-group"><label>Provider</label><select id="editPayType"><option value="mtn">MTN</option><option value="airtel">Airtel</option></select></div>
+                <div class="form-group"><label>Number</label><input type="text" id="editPayNum" maxlength="10"></div>
+                <div class="form-group" style="grid-column: span 2;"><label>Account Owner Name</label><input type="text" id="editPayName"></div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-save" onclick="saveEditPayment()">💾 Save Changes</button>
+                <button class="btn btn-delete" onclick="closeEditModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== FIREBASE CONFIG =====
+const firebaseConfig = {
+  apiKey: "AIzaSyBAP4jLncztjRbCuBxuYSvo1anV5-RlINo",
+  authDomain: "nova-invest-6293e.firebaseapp.com",
+  databaseURL: "https://nova-invest-6293e-default-rtdb.firebaseio.com",
+  projectId: "nova-invest-6293e",
+  storageBucket: "nova-invest-6293e.firebasestorage.app",
+  messagingSenderId: "685835711005",
+  appId: "1:685835711005:web:f6ecb0ee24c9341ad64cf4"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ===== SYNC HELPERS =====
+function fbSet(path, data) {
+  return db.ref(path).set(data);
+}
+
+function fbUpdate(path, data) {
+  return db.ref(path).update(data);
+}
+
+function fbOnValue(path, callback) {
+  db.ref(path).on('value', (snapshot) => {
+    callback(snapshot.val());
+  });
+}
+
+function fbGet(path) {
+  return db.ref(path).once('value').then(s => s.val());
+}
+
+// ===== LOAD DATA FROM FIREBASE =====
+async function loadFromFirebase() {
+  const users = await fbGet('users');
+  const deposits = await fbGet('deposits');
+  const withdrawals = await fbGet('withdrawals');
+  const investments = await fbGet('investments');
+  const paymentNumbers = await fbGet('paymentNumbers');
+  const rotationIndex = await fbGet('rotationIndex');
+
+  if (users) DB.users = Object.values(users);
+  if (deposits) DB.deposits = Object.values(deposits);
+  if (withdrawals) DB.withdrawals = Object.values(withdrawals);
+  if (investments) DB.investments = Object.values(investments);
+  if (paymentNumbers) DB.paymentNumbers = Object.values(paymentNumbers);
+  if (rotationIndex !== null) DB.rotationIndex = rotationIndex;
+
+  console.log('Loaded from Firebase:', { users: DB.users.length, deposits: DB.deposits.length });
+}
+
+// ===== SAVE DATA TO FIREBASE =====
+function saveToFirebase() {
+  const usersObj = {};
+  DB.users.forEach((u, i) => { usersObj[u.id || i] = u; });
+
+  const depositsObj = {};
+  DB.deposits.forEach((d, i) => { depositsObj[d.id || i] = d; });
+
+  const withdrawalsObj = {};
+  DB.withdrawals.forEach((w, i) => { withdrawalsObj[w.id || i] = w; });
+
+  const investmentsObj = {};
+  DB.investments.forEach((inv, i) => { investmentsObj[inv.id || i] = inv; });
+
+  const paymentsObj = {};
+  DB.paymentNumbers.forEach((p, i) => { paymentsObj[p.id || i] = p; });
+
+  fbSet('users', usersObj);
+  fbSet('deposits', depositsObj);
+  fbSet('withdrawals', withdrawalsObj);
+  fbSet('investments', investmentsObj);
+  fbSet('paymentNumbers', paymentsObj);
+  fbSet('rotationIndex', DB.rotationIndex);
+}
+
+// Override saveDB to also sync to Firebase
+const originalSaveDB = saveDB;
+saveDB = function() {
+  originalSaveDB();
+  saveToFirebase();
+};
+
+// ===== REAL-TIME LISTENERS =====
+function setupRealtimeListeners() {
+  // Listen for changes and auto-refresh the current view
+  db.ref('deposits').on('value', () => {
+    if (!document.getElementById('section-deposits').classList.contains('hidden')) {
+      renderDeposits();
+      renderOverview();
+    }
+  });
+
+  db.ref('withdrawals').on('value', () => {
+    if (!document.getElementById('section-withdrawals').classList.contains('hidden')) {
+      renderWithdrawals();
+      renderOverview();
+    }
+  });
+
+  db.ref('users').on('value', () => {
+    if (!document.getElementById('section-users').classList.contains('hidden')) {
+      renderUsers();
+      renderOverview();
+    }
+  });
+}
+
+// ==================== DATA ====================
+const DB = {
+    users: JSON.parse(localStorage.getItem('lip3_users')) || [],
+    deposits: JSON.parse(localStorage.getItem('lip3_deposits')) || [],
+    withdrawals: JSON.parse(localStorage.getItem('lip3_withdrawals')) || [],
+    investments: JSON.parse(localStorage.getItem('lip3_investments')) || [],
+    paymentNumbers: JSON.parse(localStorage.getItem('lip3_paymentNumbers')) || [
+        { id: 1, type: 'mtn', number: '0737484846', owner: 'John Doe', active: true },
+        { id: 2, type: 'airtel', number: '0846403947', owner: 'Jane Smith', active: true }
+    ],
+    rotationIndex: parseInt(localStorage.getItem('lip3_rotationIndex')) || 0
+};
+
+let adminPassword = localStorage.getItem('lip3_adminPassword') || 'admin123';
+let editingPaymentId = null;
+
+function saveDB() {
+    localStorage.setItem('lip3_users', JSON.stringify(DB.users));
+    localStorage.setItem('lip3_deposits', JSON.stringify(DB.deposits));
+    localStorage.setItem('lip3_withdrawals', JSON.stringify(DB.withdrawals));
+    localStorage.setItem('lip3_investments', JSON.stringify(DB.investments));
+    localStorage.setItem('lip3_paymentNumbers', JSON.stringify(DB.paymentNumbers));
+    localStorage.setItem('lip3_rotationIndex', DB.rotationIndex);
+}
+
+function formatUGX(amount) { return 'UGX ' + Math.floor(amount).toLocaleString('en-UG'); }
+
+// ==================== LOGIN ====================
+function handleLogin(e) {
+    e.preventDefault();
+    const pass = document.getElementById('adminPass').value;
+    if (pass === adminPassword) {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        showToast('Welcome Admin!', 'success');
+        // Load from Firebase then show overview
+        loadFromFirebase().then(() => {
+          setupRealtimeListeners();
+          showSection('overview');
+        });
+    } else {
+        showToast('Wrong password!', 'error');
+    }
+}
+
+function logout() {
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('loginPage').classList.remove('hidden');
+    document.getElementById('adminPass').value = '';
+}
+
+// ==================== NAVIGATION ====================
+function showSection(section) {
+    ['overview', 'deposits', 'withdrawals', 'users', 'payments', 'settings'].forEach(s => {
+        document.getElementById('section-' + s).classList.add('hidden');
+        document.getElementById('nav-' + s)?.classList.remove('active');
+    });
+    document.getElementById('section-' + section).classList.remove('hidden');
+    document.getElementById('nav-' + section)?.classList.add('active');
+
+    const titles = { overview: 'Dashboard Overview', deposits: 'Pending Deposits', withdrawals: 'Pending Withdrawals', users: 'Manage Users', payments: 'Payment Numbers', settings: 'Settings' };
+    document.getElementById('pageTitle').textContent = titles[section];
+
+    if (section === 'overview') renderOverview();
+    if (section === 'deposits') renderDeposits();
+    if (section === 'withdrawals') renderWithdrawals();
+    if (section === 'users') renderUsers();
+    if (section === 'payments') renderPayments();
+}
+
+// ==================== OVERVIEW ====================
+function renderOverview() {
+    document.getElementById('statUsers').textContent = DB.users.length;
+    const totalDep = DB.deposits.filter(d => d.status === 'approved').reduce((s, d) => s + d.amount, 0);
+    document.getElementById('statDeposits').textContent = formatUGX(totalDep);
+    document.getElementById('statPendingDep').textContent = DB.deposits.filter(d => d.status === 'pending').length;
+    document.getElementById('statPendingWith').textContent = DB.withdrawals.filter(w => w.status === 'pending').length;
+    document.getElementById('statBlocked').textContent = DB.users.filter(u => u.status === 'blocked').length;
+    document.getElementById('statInvestments').textContent = DB.investments.filter(i => i.status === 'active').length;
+}
+
+// ==================== DEPOSITS ====================
+function renderDeposits() {
+    const pending = DB.deposits.filter(d => d.status === 'pending').sort((a, b) => b.id - a.id);
+    document.getElementById('depCount').textContent = pending.length;
+    document.getElementById('depositsTable').innerHTML = pending.length === 0
+        ? '<tr><td colspan="9" style="text-align:center;color:#888;padding:30px;">No pending deposits</td></tr>'
+        : pending.map(d => `<tr><td><strong style="color:#fff;">${d.userName}</strong></td><td>${d.userPhone}</td><td><strong style="color:#fdcb6e;">${formatUGX(d.amount)}</strong></td><td>${d.paymentMethod.toUpperCase()}</td><td>${d.paymentNumber}</td><td>${d.accountOwner}</td><td><code style="background:#12122a;padding:4px 8px;border-radius:4px;color:#667eea;">${d.transactionId}</code></td><td>${new Date(d.createdAt).toLocaleString()}</td><td><button class="btn btn-allocate" onclick="approveDeposit(${d.id})">✓ Allocate</button><button class="btn btn-reject" onclick="rejectDeposit(${d.id})">✗ Reject</button></td></tr>`).join('');
+}
+
+function approveDeposit(id) {
+    const d = DB.deposits.find(x => x.id === id);
+    if (!d) return;
+    const u = DB.users.find(x => x.id === d.userId);
+    if (!u) return;
+    u.depositBalance += d.amount;
+    u.totalDeposited += d.amount;
+    if (u.referredBy) {
+        const ref = DB.users.find(x => x.id === u.referredBy);
+        if (ref && !u.referralPaid) { ref.referralBonus += Math.floor(d.amount * 0.1); u.referralPaid = true; }
+    }
+    d.status = 'approved';
+    saveDB();
+    showToast('Deposit allocated!', 'success');
+    renderDeposits();
+    renderOverview();
+}
+
+function rejectDeposit(id) {
+    const d = DB.deposits.find(x => x.id === id);
+    if (d) { d.status = 'rejected'; d.adminNote = 'Rejected'; saveDB(); showToast('Rejected', 'success'); renderDeposits(); }
+}
+
+// ==================== WITHDRAWALS ====================
+function renderWithdrawals() {
+    const pending = DB.withdrawals.filter(w => w.status === 'pending').sort((a, b) => b.id - a.id);
+    document.getElementById('withCount').textContent = pending.length;
+    document.getElementById('withdrawalsTable').innerHTML = pending.length === 0
+        ? '<tr><td colspan="6" style="text-align:center;color:#888;padding:30px;">No pending withdrawals</td></tr>'
+        : pending.map(w => `<tr><td><strong style="color:#fff;">${w.userName}</strong></td><td>${w.userPhone}</td><td><strong style="color:#fdcb6e;">${formatUGX(Math.floor(w.amount))}</strong></td><td>${w.source}</td><td>${new Date(w.createdAt).toLocaleString()}</td><td><button class="btn btn-allocate" onclick="approveWithdrawal(${w.id})">✓ Approve</button><button class="btn btn-reject" onclick="rejectWithdrawal(${w.id})">✗ Reject</button></td></tr>`).join('');
+}
+
+function approveWithdrawal(id) {
+    const w = DB.withdrawals.find(x => x.id === id);
+    if (!w) return;
+    const u = DB.users.find(x => x.id === w.userId);
+    if (!u) return;
+    if (w.source === 'earnings') u.earningsBalance -= w.amount;
+    else if (w.source === 'signup') u.signupBonus -= w.amount;
+    else if (w.source === 'referral') u.referralBonus -= w.amount;
+    w.status = 'approved';
+    saveDB();
+    showToast('Withdrawal approved!', 'success');
+    renderWithdrawals();
+    renderOverview();
+}
+
+function rejectWithdrawal(id) {
+    const w = DB.withdrawals.find(x => x.id === id);
+    if (w) { w.status = 'rejected'; w.adminNote = 'Rejected'; saveDB(); showToast('Rejected', 'success'); renderWithdrawals(); }
+}
+
+// ==================== USERS ====================
+function renderUsers() {
+    document.getElementById('userCount').textContent = DB.users.length;
+    document.getElementById('usersTable').innerHTML = DB.users.map(u => `<tr><td><strong style="color:#fff;">${u.name}</strong></td><td>${u.phone}</td><td>${formatUGX(u.depositBalance)}</td><td>${formatUGX(Math.floor(u.earningsBalance))}</td><td>${formatUGX(u.totalDeposited)}</td><td><span class="badge badge-${u.status === 'active' ? 'active' : 'rejected'}">${u.status.toUpperCase()}</span></td><td>${u.status === 'active' ? `<button class="btn btn-reject" onclick="toggleBlock(${u.id})">🚫 Block</button>` : `<button class="btn btn-allocate" onclick="toggleBlock(${u.id})">✓ Unblock</button>`}</td></tr>`).join('');
+}
+
+function toggleBlock(id) {
+    const u = DB.users.find(x => x.id === id);
+    if (u) { u.status = u.status === 'active' ? 'blocked' : 'active'; saveDB(); showToast(u.status === 'active' ? 'Unblocked!' : 'Blocked!', 'success'); renderUsers(); renderOverview(); }
+}
+
+// ==================== PAYMENTS - WITH EDIT ====================
+function renderPayments() {
+    document.getElementById('paymentsTable').innerHTML = DB.paymentNumbers.map((p, i) => `
+        <tr>
+            <td>${i + 1}</td>
+            <td><span class="badge badge-${p.type === 'mtn' ? 'active' : 'purple'}">${p.type.toUpperCase()}</span></td>
+            <td><strong style="color:#fff;">${p.number}</strong></td>
+            <td>${p.owner}</td>
+            <td><span class="badge badge-${p.active ? 'active' : 'inactive'}">${p.active ? 'ACTIVE' : 'INACTIVE'}</span></td>
+            <td>
+                <button class="btn btn-toggle" onclick="togglePayment(${p.id})">${p.active ? 'Deactivate' : 'Activate'}</button>
+                <button class="btn btn-edit" onclick="openEditPayment(${p.id})">✎ Edit</button>
+            </td>
+        </tr>`).join('');
+}
+
+function addPaymentNumber() {
+    const type = document.getElementById('newPayType').value;
+    const number = document.getElementById('newPayNum').value;
+    const name = document.getElementById('newPayName').value;
+    if (!number.match(/^0[78]\d{8}$/)) { showToast('Invalid phone number', 'error'); return; }
+    if (!name) { showToast('Owner name required', 'error'); return; }
+    DB.paymentNumbers.push({ id: Date.now(), type, number, owner: name, active: true });
+    saveDB();
+    showToast('Payment number added!', 'success');
+    document.getElementById('newPayNum').value = '';
+    document.getElementById('newPayName').value = '';
+    renderPayments();
+}
+
+function togglePayment(id) {
+    const p = DB.paymentNumbers.find(x => x.id === id);
+    if (p) { p.active = !p.active; saveDB(); renderPayments(); }
+}
+
+function deletePayment(id) {
+    if (!confirm('Delete this payment number?')) return;
+    DB.paymentNumbers = DB.paymentNumbers.filter(x => x.id !== id);
+    saveDB();
+    renderPayments();
+}
+
+// ==================== EDIT PAYMENT ====================
+function openEditPayment(id) {
+    const p = DB.paymentNumbers.find(x => x.id === id);
+    if (!p) return;
+    editingPaymentId = id;
+    document.getElementById('editPayType').value = p.type;
+    document.getElementById('editPayNum').value = p.number;
+    document.getElementById('editPayName').value = p.owner;
+    document.getElementById('editModal').classList.remove('hidden');
+}
+
+function closeEditModal(e) {
+    if (!e || e.target.classList.contains('modal-overlay') || e.target.classList.contains('modal-close')) {
+        document.getElementById('editModal').classList.add('hidden');
+        editingPaymentId = null;
+    }
+}
+
+function saveEditPayment() {
+    if (!editingPaymentId) return;
+    const p = DB.paymentNumbers.find(x => x.id === editingPaymentId);
+    if (!p) return;
+
+    const type = document.getElementById('editPayType').value;
+    const number = document.getElementById('editPayNum').value;
+    const name = document.getElementById('editPayName').value;
+
+    if (!number.match(/^0[78]\d{8}$/)) { showToast('Invalid phone number', 'error'); return; }
+    if (!name) { showToast('Owner name required', 'error'); return; }
+
+    p.type = type;
+    p.number = number;
+    p.owner = name;
+    saveDB();
+    document.getElementById('editModal').classList.add('hidden');
+    editingPaymentId = null;
+    showToast('Payment number updated!', 'success');
+    renderPayments();
+}
+
+// ==================== SETTINGS ====================
+function changePassword() {
+    const newPass = document.getElementById('newAdminPass').value;
+    if (!newPass || newPass.length < 4) { showToast('Password too short', 'error'); return; }
+    adminPassword = newPass;
+    localStorage.setItem('lip3_adminPassword', newPass);
+    document.getElementById('newAdminPass').value = '';
+    showToast('Password updated!', 'success');
+}
+
+function clearAllData() {
+    if (!confirm('⚠️ DELETE ALL DATA? This cannot be undone!')) return;
+    ['lip3_users', 'lip3_deposits', 'lip3_withdrawals', 'lip3_investments', 'lip3_paymentNumbers', 'lip3_rotationIndex', 'lip3_currentUser'].forEach(k => localStorage.removeItem(k));
+    showToast('All data cleared! Refresh page.', 'success');
+}
+
+function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+}
+
+// Mobile menu toggle
+function toggleMobileMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobileSidebarOverlay');
+    if (sidebar.style.display === 'block') {
+        sidebar.style.display = '';
+        sidebar.style.position = '';
+        sidebar.style.left = '';
+        sidebar.style.top = '';
+        sidebar.style.bottom = '';
+        sidebar.style.zIndex = '';
+        sidebar.style.width = '';
+        overlay.style.display = 'none';
+    } else {
+        sidebar.style.display = 'block';
+        sidebar.style.position = 'fixed';
+        sidebar.style.left = '0';
+        sidebar.style.top = '0';
+        sidebar.style.bottom = '0';
+        sidebar.style.zIndex = '300';
+        sidebar.style.width = '280px';
+        overlay.style.display = 'block';
+    }
+}
+</script>
+</body>
+</html>
